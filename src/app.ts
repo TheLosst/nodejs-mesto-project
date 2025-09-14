@@ -3,8 +3,10 @@ import type { Server } from 'http';
 import mongoose from 'mongoose';
 import usersRouter from './routes/users';
 import cardsRouter from './routes/cards';
+import { createUser, login } from './controllers/users';
 import { errors, celebrate, Joi, Segments } from 'celebrate';
 import errorHandler from './middlewares/errorHandler';
+import { requestLogMiddleware, errorLogMiddleware } from './middlewares/logger';
 
 // Порт можно переопределить через переменную окружения PORT, по умолчанию 3000
 const PORT = Number(process.env.PORT) || 3000;
@@ -28,6 +30,8 @@ async function connectDB() {
 	}
 }
 
+// Winston логирование запросов
+app.use(requestLogMiddleware);
 // Базовые middleware
 app.use(express.json());
 
@@ -44,10 +48,10 @@ app.post('/signup',
 			password: Joi.string().required(),
 			name: Joi.string().min(2).max(30),
 			about: Joi.string().min(2).max(200),
-			avatar: Joi.string().pattern(/^(https?:\/\/)(www\.)?([\w-]+\.)+[a-zA-Z]{2,}(\/[-\w._~:/?#[\]@!$&'()*+,;=]*)?#?$/),
+			avatar: Joi.string().pattern(/^(https?:\/\/)(www\.)?([\w-]+\.)+[a-zA-Z]{2,}(\/[\-\w._~:/?#[\]@!$&'()*+,;=]*)?#?$/),
 		}),
 	}),
-	require('./controllers/users').createUser
+	createUser
 );
 app.post('/signin',
 	celebrate({
@@ -56,7 +60,7 @@ app.post('/signin',
 			password: Joi.string().required(),
 		}),
 	}),
-	require('./controllers/users').login
+	login
 );
 
 // Роуты пользователей
@@ -69,9 +73,10 @@ app.use((req: Request, res: Response) => {
   res.status(404).json({ message: 'Not Found' });
 });
 
+// Winston логирование ошибок
+app.use(errorLogMiddleware);
 // Celebrate error handler
 app.use(errors());
-
 // Централизованный error handler
 app.use(errorHandler);
 
