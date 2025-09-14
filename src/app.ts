@@ -1,8 +1,10 @@
-import express, { Request, Response } from 'express';
+import express, { Request, Response, NextFunction } from 'express';
 import type { Server } from 'http';
 import mongoose from 'mongoose';
 import usersRouter from './routes/users';
 import cardsRouter from './routes/cards';
+import { errors, celebrate, Joi, Segments } from 'celebrate';
+import errorHandler from './middlewares/errorHandler';
 
 // Порт можно переопределить через переменную окружения PORT, по умолчанию 3000
 const PORT = Number(process.env.PORT) || 3000;
@@ -29,38 +31,49 @@ async function connectDB() {
 // Базовые middleware
 app.use(express.json());
 
-// Временный мидлвар для авторизации (user._id захардкожен)
-import type { NextFunction } from 'express';
-app.use((req: Request, res: Response, next: NextFunction) => {
-	req.user = {
-		_id: '5d8b8592978f8bd833ca8133', // замените на актуальный _id пользователя из вашей базы
-	} as { _id: string };
-	next();
-});
-
 // Простой маршрут для проверки работоспособности
 app.get('/', (req: Request, res: Response) => {
-  res.status(200).json({ message: 'Mesto API server is running (hot reload test)' });
+	res.status(200).json({ message: 'Mesto API server is running (hot reload test)' });
 });
+
+// Валидация signup/signin
+app.post('/signup',
+	celebrate({
+		[Segments.BODY]: Joi.object().keys({
+			email: Joi.string().email().required(),
+			password: Joi.string().required(),
+			name: Joi.string().min(2).max(30),
+			about: Joi.string().min(2).max(200),
+			avatar: Joi.string().pattern(/^(https?:\/\/)(www\.)?([\w-]+\.)+[a-zA-Z]{2,}(\/[-\w._~:/?#[\]@!$&'()*+,;=]*)?#?$/),
+		}),
+	}),
+	require('./controllers/users').createUser
+);
+app.post('/signin',
+	celebrate({
+		[Segments.BODY]: Joi.object().keys({
+			email: Joi.string().email().required(),
+			password: Joi.string().required(),
+		}),
+	}),
+	require('./controllers/users').login
+);
 
 // Роуты пользователей
 app.use('/users', usersRouter);
 // Роуты карточек
 app.use('/cards', cardsRouter);
 
-// Обработчик 404 (если понадобятся другие роуты позже — оставим задел)
+// Обработчик 404
 app.use((req: Request, res: Response) => {
-	res.status(404).json({ error: 'Not Found' });
+  res.status(404).json({ message: 'Not Found' });
 });
 
-// Центральный обработчик ошибок (минимальный вариант)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-app.use((err: Error, req: Request, res: Response, _next: Function) => {
-	// В продакшне можно логировать подробнее
-	// eslint-disable-next-line no-console
-	console.error('Unexpected error:', err);
-	res.status(500).json({ error: 'Internal Server Error' });
-});
+// Celebrate error handler
+app.use(errors());
+
+// Централизованный error handler
+app.use(errorHandler);
 
 let server: Server | null = null;
 

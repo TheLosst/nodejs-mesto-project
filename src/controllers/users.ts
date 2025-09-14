@@ -49,6 +49,7 @@ export async function updateAvatar(req: Request, res: Response) {
 }
 import { Request, Response } from 'express';
 import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 import User, { IUser } from '../models/user';
 
 // GET /users — возвращает всех пользователей
@@ -80,11 +81,21 @@ export async function getUserById(req: Request, res: Response) {
 
 // POST /users — создаёт пользователя
 export async function createUser(req: Request, res: Response) {
-  const { name, about, avatar } = req.body || {};
+  const { name, about, avatar, email, password } = req.body || {};
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email и пароль обязательны' });
+  }
   try {
-    const user = await User.create({ name, about, avatar });
-    return res.status(201).json(user);
+    const hash = await bcrypt.hash(password, 10);
+    const user = await User.create({ name, about, avatar, email, password: hash });
+    // Не возвращаем пароль
+    const userObj = user.toObject();
+    delete userObj.password;
+    return res.status(201).json(userObj);
   } catch (err: any) {
+    if (err.code === 11000) {
+      return res.status(409).json({ message: 'Пользователь с таким email уже существует' });
+    }
     if (err.name === 'ValidationError') {
       return res.status(400).json({ message: 'Переданы некорректные данные при создании пользователя' });
     }

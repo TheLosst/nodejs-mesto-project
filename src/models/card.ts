@@ -8,7 +8,8 @@ export interface ICard extends Document {
   createdAt: Date;
 }
 
-const urlRegex = /^(https?:\/\/)(www\.)?[\w\-~:/?#@!$&'()*+,;=.]+#?$/i;
+// https://regex101.com/r/1XUuQ2/1
+const urlRegex = /^(https?:\/\/)(www\.)?([\w-]+\.)+[a-zA-Z]{2,}(\/[-\w._~:/?#[\]@!$&'()*+,;=]*)?#?$/;
 
 const cardSchema = new Schema<ICard>({
   name: {
