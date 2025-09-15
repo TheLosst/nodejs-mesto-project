@@ -1,7 +1,7 @@
 {
   "name": "Mesto-Project",
   "version": "1.0.0",
-  "description": "< Добавьте описание проекта в свободной форме >",
+  "description": "Backend for Mesto Project",
   "main": "dist/app.js",
   "scripts": {
     "lint": "npx eslint src/**/*.ts",
