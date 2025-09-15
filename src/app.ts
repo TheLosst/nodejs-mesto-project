@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import usersRouter from './routes/users';
 import cardsRouter from './routes/cards';
 import { createUser, login } from './controllers/users';
+import auth from './middlewares/auth';
 import { errors, celebrate, Joi, Segments } from 'celebrate';
 import errorHandler from './middlewares/errorHandler';
 import { requestLogMiddleware, errorLogMiddleware } from './middlewares/logger';
@@ -62,6 +63,9 @@ app.post('/signin',
 	}),
 	login
 );
+
+// Auth middleware для всех защищённых маршрутов
+app.use(auth);
 
 // Роуты пользователей
 app.use('/users', usersRouter);

@@ -5,7 +5,16 @@ import { celebrate, Joi, Segments } from 'celebrate';
 const router = Router();
 
 router.get('/', getCards);
-router.post('/', createCard);
+router.post(
+	'/',
+	celebrate({
+		[Segments.BODY]: Joi.object().keys({
+			name: Joi.string().min(2).max(30).required(),
+			link: Joi.string().pattern(/^(https?:\/\/)(www\.)?([\w-]+\.)+[a-zA-Z]{2,}(\/[\-\w._~:/?#[\]@!$&'()*+,;=]*)?#?$/).required(),
+		}),
+	}),
+	createCard
+);
 router.delete(
 	'/:cardId',
 	celebrate({
